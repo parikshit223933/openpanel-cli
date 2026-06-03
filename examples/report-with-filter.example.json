@@ -1,0 +1,19 @@
+{
+  "name": "Screen views from the US (last 7 days)",
+  "chartType": "linear",
+  "lineType": "monotone",
+  "interval": "day",
+  "range": "7d",
+  "metric": "count",
+  "previous": true,
+  "series": [
+    {
+      "type": "event",
+      "name": "screen_view",
+      "segment": "event",
+      "filters": [
+        { "name": "country", "operator": "is", "value": ["US"] }
+      ]
+    }
+  ]
+}

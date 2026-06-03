@@ -1,0 +1,16 @@
+{
+  "name": "Signups by country",
+  "chartType": "bar",
+  "interval": "day",
+  "range": "30d",
+  "metric": "count",
+  "breakdowns": [{ "name": "country" }],
+  "series": [
+    {
+      "type": "event",
+      "name": "signup",
+      "segment": "event",
+      "filters": []
+    }
+  ]
+}

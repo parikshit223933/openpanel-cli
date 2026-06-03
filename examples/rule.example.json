@@ -1,0 +1,17 @@
+{
+  "name": "Purchase completed",
+  "template": "🎉 A purchase just happened!",
+  "config": {
+    "type": "events",
+    "events": [
+      {
+        "name": "purchase",
+        "segment": "event",
+        "filters": []
+      }
+    ]
+  },
+  "integrations": ["app", "email"],
+  "sendToApp": true,
+  "sendToEmail": true
+}
