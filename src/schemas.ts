@@ -158,7 +158,7 @@ export const zReportForCreate = z.object({
   interval: zTimeInterval.default('day'),
   series: z.array(zChartEventItem),
   breakdowns: z.array(zChartBreakdown).default([]),
-  range: zRange.default('30d'),
+  range: zRange.default('7d'),
   startDate: z.string().nullish(),
   endDate: z.string().nullish(),
   previous: z.boolean().default(false),
@@ -206,6 +206,17 @@ export type CreateNotificationRule = z.infer<typeof zCreateNotificationRule>;
 export type CreateNotificationRuleInput = z.input<
   typeof zCreateNotificationRule
 >;
+
+// ── References (chart annotation markers) ──
+export const zCreateReference = z.object({
+  title: z.string().min(1),
+  description: z.string().nullish(),
+  projectId: z.string(),
+  datetime: z.string(),
+});
+
+export type CreateReference = z.infer<typeof zCreateReference>;
+export type CreateReferenceInput = z.input<typeof zCreateReference>;
 
 // ── Auth ──
 export const zSignInEmail = z.object({

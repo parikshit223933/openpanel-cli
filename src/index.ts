@@ -5,10 +5,11 @@ import { registerProjectCommands } from './commands/projects.js';
 import { registerDashboardCommands } from './commands/dashboards.js';
 import { registerReportCommands } from './commands/reports.js';
 import { registerRuleCommands } from './commands/rules.js';
+import { registerReferenceCommands } from './commands/references.js';
 import { TrpcError } from './trpc.js';
 import { errorLine, isJsonMode, printJson, setJsonMode } from './output.js';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 function buildProgram(): Command {
   const program = new Command();
@@ -27,16 +28,18 @@ function buildProgram(): Command {
   registerDashboardCommands(program);
   registerReportCommands(program);
   registerRuleCommands(program);
+  registerReferenceCommands(program);
 
   program.addHelpText(
     'after',
     `
 Examples:
-  $ openpanel login --email you@company.com
+  $ openpanel login --email you@example.com
   $ openpanel projects list
   $ openpanel dashboards create -P <projectId> -n "Growth"
   $ openpanel reports create -d <dashboardId> -n "Signups" -e signup -c bar -r 7d
   $ openpanel rules create -P <projectId> -n "New signups" -e signup --app
+  $ openpanel references create -P <projectId> -t "Deployed v2"
   $ openpanel --json projects list
 
 Environment:
@@ -94,8 +97,14 @@ function handleError(err: unknown): void {
       });
     } else {
       errorLine(err.message);
-      if (err.isAuthError || err.code === 'NO_AUTH') {
+      if (err.isAuthError) {
         errorLine('→ Try `openpanel login` (or set OPENPANEL_SESSION).');
+      } else if (err.isAccessError) {
+        errorLine(
+          '→ Check you have access to this project, or that you are logged into the right account (`openpanel whoami`).',
+        );
+      } else if (err.isNotFound) {
+        errorLine('→ Run the matching `list` command to find valid ids.');
       }
       if (err.zodError) {
         errorLine(`Validation details: ${JSON.stringify(err.zodError)}`);

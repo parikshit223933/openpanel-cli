@@ -59,7 +59,7 @@ export function registerReportCommands(program: Command): void {
     .option('-s, --segment <segment>', 'Aggregation segment for events (event|user|session|…)', 'event')
     .option('-c, --chart-type <type>', 'Chart type (linear|bar|pie|metric|area|map|funnel|…)', 'linear')
     .option('-i, --interval <interval>', 'Interval (minute|hour|day|week|month)', 'day')
-    .option('-r, --range <range>', 'Range (7d|30d|today|…)', '30d')
+    .option('-r, --range <range>', 'Range (7d|30d|today|…) — default 7d to limit ClickHouse load', '7d')
     .option('-b, --breakdown <property>', 'Breakdown property (repeatable)', collect, [])
     .option('-m, --metric <metric>', 'Metric (count|sum|average|min|max)', 'sum')
     .option('--line-type <lineType>', 'Line type for line charts', 'monotone')
