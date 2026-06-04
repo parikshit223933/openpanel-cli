@@ -25,8 +25,28 @@ export class TrpcError extends Error {
     this.path = opts.path;
   }
 
+  /** Genuine authentication failure (missing/expired session) — suggest re-login. */
   get isAuthError(): boolean {
-    return this.httpStatus === 401 || this.code === 'UNAUTHORIZED';
+    return (
+      this.code === 'NO_AUTH' ||
+      /not authenticated|failed to get user/i.test(this.message)
+    );
+  }
+
+  /** Authorization failure — authenticated, but lacking access to the resource. */
+  get isAccessError(): boolean {
+    return (
+      !this.isAuthError &&
+      (this.code === 'FORBIDDEN' ||
+        this.httpStatus === 403 ||
+        this.code === 'UNAUTHORIZED' ||
+        /do not have access/i.test(this.message))
+    );
+  }
+
+  /** Referenced record does not exist. */
+  get isNotFound(): boolean {
+    return this.code === 'NOT_FOUND' || this.httpStatus === 404;
   }
 }
 
@@ -110,7 +130,22 @@ async function call<T>(
   if (json?.error) {
     const err = json.error.json ?? json.error;
     const data = err?.data ?? {};
-    throw new TrpcError(err?.message ?? `Request to ${path} failed`, {
+    const rawMessage = err?.message ?? `Request to ${path} failed`;
+
+    // The server uses Prisma's `findUniqueOrThrow` for lookups, which surfaces
+    // as a raw 500 + stack when an id doesn't exist. Translate that (and real
+    // NOT_FOUND codes) into a clean message instead of leaking Prisma internals.
+    const looksNotFound =
+      data.code === 'NOT_FOUND' ||
+      /no record was found|finduniqueorthrow|findfirstorthrow/i.test(rawMessage);
+    if (looksNotFound) {
+      throw new TrpcError(
+        `Not found — a referenced record (e.g. project, dashboard, report, or rule id) does not exist. Check the id; run the matching \`list\` command to see valid ids.`,
+        { httpStatus: 404, code: 'NOT_FOUND', path },
+      );
+    }
+
+    throw new TrpcError(rawMessage, {
       httpStatus: data.httpStatus ?? res.status,
       code: data.code,
       zodError: data.zodError ?? undefined,

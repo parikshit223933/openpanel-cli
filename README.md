@@ -1,12 +1,13 @@
 # openpanel-cli
 
-A command-line tool to **create and manage [OpenPanel](https://openpanel.dev) dashboards, reports, and notification rules** — the things the public OpenPanel API and the OpenPanel MCP server can't do.
+A command-line tool to **create and manage [OpenPanel](https://openpanel.dev) dashboards, reports, references, and notification rules** — the analytics-building actions the public OpenPanel API and the OpenPanel MCP server can't do.
 
 ```bash
-openpanel login --email you@company.com
+openpanel login --email you@example.com
 openpanel projects list
 openpanel dashboards create -P <projectId> -n "Growth"
-openpanel reports create -d <dashboardId> -n "Signups" -e signup -c bar -r 7d
+openpanel reports create -d <dashboardId> -n "Signups" -e signup -c bar   # 7-day window by default
+openpanel references create -P <projectId> -t "Launched v2"
 openpanel rules create -P <projectId> -n "New signup" -e signup --app
 ```
 
@@ -28,6 +29,20 @@ So this CLI:
 2. Talks to the tRPC API at `<instance>/api/trpc/<router>.<procedure>` using the same **superjson** wire format the dashboard uses.
 
 Default instance: `https://dashboard.openpanel.dev` (OpenPanel Cloud). Point it at your own (self-hosted) instance with `OPENPANEL_INSTANCE` or `openpanel config set-instance <url>`.
+
+---
+
+## Scope — analytics only (by design)
+
+This CLI builds **analytics artifacts**: dashboards, reports (charts / metrics), references (chart annotations), and notification rules. That's the whole job.
+
+It intentionally has **no admin or settings functionality**. Project settings, organization & member management, integration setup, API clients, billing, and instance configuration belong in the OpenPanel **dashboard**, not here. The only state the CLI keeps locally is which instance to talk to and your session.
+
+This keeps it safe to hand to a product/analytics team — or an AI agent — to create and manage dashboards, without exposing anything that changes how the instance is configured.
+
+> **Reports default to a 7-day window** to limit load on ClickHouse. Pass `-r 30d` (etc.) only when you need a wider range; viewers can always widen it in the UI.
+
+See [`CLAUDE.md`](./CLAUDE.md) for agent guidance and [`docs/COMMANDS.md`](./docs/COMMANDS.md) for the full command reference.
 
 ---
 
@@ -55,14 +70,14 @@ openpanel --help
 ### Email + password (default)
 
 ```bash
-openpanel login --email you@company.com
+openpanel login --email you@example.com
 # prompts for password (hidden); prompts for a 2FA code if your account has TOTP enabled
 ```
 
 You can pass `--password` (not recommended — it lands in shell history) or set env vars for non-interactive use:
 
 ```bash
-OPENPANEL_EMAIL=you@company.com OPENPANEL_PASSWORD=… openpanel login
+OPENPANEL_EMAIL=you@example.com OPENPANEL_PASSWORD=… openpanel login
 ```
 
 ### Google / GitHub SSO accounts → paste a session cookie
@@ -157,13 +172,25 @@ openpanel reports delete -i <reportId> [--yes]
 | `-s, --segment` | `event`, `user`, `session`, `property_sum`, … | `event` |
 | `-c, --chart-type` | `linear`, `bar`, `histogram`, `pie`, `metric`, `area`, `map`, `funnel`, … | `linear` |
 | `-i, --interval` | `minute`, `hour`, `day`, `week`, `month` | `day` |
-| `-r, --range` | `7d`, `30d`, `today`, `lastMonth`, … | `30d` |
+| `-r, --range` | `7d`, `30d`, `today`, `lastMonth`, … | **`7d`** (keeps ClickHouse load low) |
 | `-b, --breakdown` | Breakdown property (repeatable) | — |
 | `-m, --metric` | `count`, `sum`, `average`, `min`, `max` | `sum` |
 | `--unit` | Y-axis unit label | — |
 | `--previous` | Add previous-period comparison | off |
 | `--layout` | Grid placement `x,y,w,h` | — |
 | `-f, --file` | JSON report spec (overrides the flags) | — |
+
+### References (chart annotations)
+
+Markers overlaid on time-series charts — e.g. "Deployed v2", "Campaign launched".
+
+```bash
+openpanel references create -P <projectId> -t "Deployed v2" [--description "..."] [--date 2026-06-01]
+openpanel references list   -P <projectId>
+openpanel references delete -i <referenceId> [--yes]
+```
+
+`--date` accepts an ISO date/time and defaults to now.
 
 ### Notification rules
 
