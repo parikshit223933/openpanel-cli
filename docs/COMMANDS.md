@@ -186,6 +186,7 @@ openpanel data -P <projectId> -e screen_view --list-properties
 | `-r, --range` | Range (`7d`, `30d`, `today`, …) | **`7d`** |
 | `--start` / `--end` | Custom date range (ISO); overrides `--range` | — |
 | `-b, --breakdown` | Breakdown property (repeatable) | — |
+| `--limit` | Cap how many series are returned (top N by total) | — |
 | `-m, --metric` | Metric (`count`, `sum`, `average`, `min`, `max`) | `sum` |
 | `-c, --chart-type` | Chart type (`linear`, `bar`, `metric`, `area`, …) | `linear` |
 | `--filter` | Filter `"<property> <operator> [v1,v2]"` (repeatable) | — |

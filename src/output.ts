@@ -97,7 +97,9 @@ export function toCsv(
     const s = formatCell(value);
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const lines = [cols.join(',')];
+  // Escape the header too — column names can be breakdown values (e.g. page
+  // titles) that contain commas/quotes/newlines.
+  const lines = [cols.map(escape).join(',')];
   for (const r of rows) {
     lines.push(cols.map((col) => escape(r[col])).join(','));
   }

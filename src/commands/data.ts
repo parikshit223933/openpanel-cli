@@ -126,6 +126,7 @@ export function registerDataCommand(program: Command): void {
     .option('--start <date>', 'Custom start date (ISO); overrides --range')
     .option('--end <date>', 'Custom end date (ISO); overrides --range')
     .option('-b, --breakdown <property>', 'Breakdown property (repeatable)', collect, [])
+    .option('--limit <n>', 'Cap how many series are returned (top N by total)')
     .option('-m, --metric <metric>', 'Metric (count|sum|average|min|max)', 'sum')
     .option('-c, --chart-type <type>', 'Chart type (linear|bar|metric|area|…)', 'linear')
     .option(
@@ -204,6 +205,7 @@ async function buildFromFlags(
     metric: opts.metric,
     previous: !!opts.previous,
     breakdowns,
+    limit: parseLimit(opts.limit),
     series: events.map((name) => ({
       type: 'event' as const,
       name,
@@ -236,11 +238,23 @@ async function buildFromReport(
   opts: any,
   command: Command,
 ): Promise<{ input: ChartDataInputInput; meta: Normalized['meta'] }> {
-  const report = await trpcQuery<SavedReport>('report.get', {
-    reportId: opts.report,
-  });
+  let report: SavedReport | undefined;
+  try {
+    report = await trpcQuery<SavedReport>('report.get', {
+      reportId: opts.report,
+    });
+  } catch (e) {
+    // Surface auth/access problems as-is; otherwise a bad id can come back as a
+    // raw Prisma/lookup error — translate it into a clean message.
+    if (e instanceof TrpcError && (e.isAuthError || e.isAccessError)) throw e;
+    throw new TrpcError(
+      `Report "${opts.report}" not found. Check the id with \`openpanel reports list -d <dashboardId> -P <projectId>\`.`,
+    );
+  }
   if (!report) {
-    throw new TrpcError(`Report ${opts.report} not found.`);
+    throw new TrpcError(
+      `Report "${opts.report}" not found. Check the id with \`openpanel reports list -d <dashboardId> -P <projectId>\`.`,
+    );
   }
   if (UNSUPPORTED_CHART_TYPES.has(report.chartType)) {
     throw new TrpcError(
@@ -446,8 +460,15 @@ function normalize(chart: FinalChart, meta: Normalized['meta']): Normalized {
 
   const labelCounts = new Map<string, number>();
   const norm: NormalSeries[] = series.map((s, i) => {
-    let label =
-      s.names && s.names.length ? s.names.join(' / ') : s.event?.name ?? `series ${i + 1}`;
+    const parts = (
+      s.names && s.names.length ? s.names : [s.event?.name ?? `series ${i + 1}`]
+    ).map((p) => {
+      // A null/empty breakdown value comes back as an empty string or NUL
+      // bytes — which must not leak into CSV/JSON — so strip and label clearly.
+      const clean = String(p ?? '').replace(/\u0000/g, '');
+      return clean.trim() === '' ? '(none)' : clean;
+    });
+    let label = parts.join(' / ');
     const seenN = labelCounts.get(label) ?? 0;
     labelCounts.set(label, seenN + 1);
     if (seenN > 0) label = `${label} #${seenN + 1}`; // de-dupe identical labels
@@ -463,6 +484,13 @@ function normalize(chart: FinalChart, meta: Normalized['meta']): Normalized {
 }
 
 function output(n: Normalized, opts: any): void {
+  // High-cardinality breakdowns can return thousands of series. Nudge toward
+  // narrowing (warn goes to stderr, so it never pollutes JSON/CSV on stdout).
+  if (!opts.limit && n.series.length > 50) {
+    warn(
+      `${n.series.length} series returned — pass --limit <n> or add a --filter to narrow it.`,
+    );
+  }
   if (opts.out) {
     const format = opts.format ?? inferFileFormat(opts.out);
     const content = format === 'json' ? jsonString(n) : renderCsv(n);
@@ -627,6 +655,15 @@ function prevDiff(stat: PrevStat | undefined): number | undefined {
     return stat.state === 'negative' ? -Math.abs(stat.diff) : Math.abs(stat.diff);
   }
   return undefined;
+}
+
+function parseLimit(value: string | undefined): number | undefined {
+  if (value == null) return undefined;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new TrpcError(`--limit must be a positive integer (got "${value}").`);
+  }
+  return n;
 }
 
 function emptyMetrics(): FinalChart['metrics'] {
