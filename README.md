@@ -1,12 +1,13 @@
 # openpanel-cli
 
-A command-line tool to **create and manage [OpenPanel](https://openpanel.dev) dashboards, reports, references, and notification rules** — the analytics-building actions the public OpenPanel API and the OpenPanel MCP server can't do.
+A command-line tool to **create, manage, and pull data from [OpenPanel](https://openpanel.dev) dashboards, reports, references, and notification rules** — the analytics actions the public OpenPanel API and the OpenPanel MCP server can't do.
 
 ```bash
 openpanel login --email you@example.com
 openpanel projects list
 openpanel dashboards create -P <projectId> -n "Growth"
 openpanel reports create -d <dashboardId> -n "Signups" -e signup -c bar   # 7-day window by default
+openpanel data -P <projectId> -e signup -r 7d -i day                     # pull the actual numbers
 openpanel references create -P <projectId> -t "Launched v2"
 openpanel rules create -P <projectId> -n "New signup" -e signup --app
 ```
@@ -179,6 +180,35 @@ openpanel reports delete -i <reportId> [--yes]
 | `--previous` | Add previous-period comparison | off |
 | `--layout` | Grid placement `x,y,w,h` | — |
 | `-f, --file` | JSON report spec (overrides the flags) | — |
+
+### Data (pull the actual numbers)
+
+Get the numbers, not just build the chart — as a table, JSON, or CSV. Read-only.
+
+```bash
+# Ad-hoc: one event over a date range, grouped by day
+openpanel data -P <projectId> -e screen_view -r 7d -i day
+
+# Filter + breakdown (one row per breakdown value)
+openpanel data -P <projectId> -e screen_view -r 30d -i week --filter "device is mobile" -b country
+
+# A saved report's current numbers, saved to CSV
+openpanel data -R <reportId> -o report.csv
+
+# Discover events / properties to query
+openpanel data -P <projectId> --list-events
+```
+
+The default output is a table of the value per period plus a per-series summary
+(`total`, `average`, `min`, `max`, and `unique` for non-additive counts). Add
+`--json` or `--format csv` (or `-o file.json` / `-o file.csv`) for machine
+formats — they hold the same numbers.
+
+`data` calls OpenPanel's internal `chart.chart` query — the same one the
+dashboard tile uses — so the totals match what you see in the browser. Funnel /
+retention / conversion / sankey reports aren't covered (view those in the
+dashboard). See [`docs/COMMANDS.md`](./docs/COMMANDS.md#data-pull-the-actual-numbers)
+for the full flag list and filter syntax.
 
 ### References (chart annotations)
 

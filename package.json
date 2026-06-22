@@ -1,7 +1,7 @@
 {
   "name": "openpanel-cli",
-  "version": "0.2.0",
-  "description": "Command-line tool to create and manage OpenPanel dashboards, reports, and notification rules via the OpenPanel internal API.",
+  "version": "0.3.0",
+  "description": "Command-line tool to create, manage, and pull data from OpenPanel dashboards, reports, and notification rules via the OpenPanel internal API.",
   "type": "module",
   "bin": {
     "openpanel": "./dist/index.js"

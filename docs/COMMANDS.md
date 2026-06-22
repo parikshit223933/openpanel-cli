@@ -150,6 +150,80 @@ A **funnel** is a `chartType: "funnel"` with ordered `series` and
 
 ---
 
+## Data (pull the actual numbers)
+
+Return the numbers — not just build a chart. `data` runs an **ad-hoc query** or
+reads a **saved report** and prints the results as a table, JSON, or CSV. It is
+**read-only**: it never creates or changes anything.
+
+```bash
+# Ad-hoc: one event over a date range, grouped by day
+openpanel data -P <projectId> -e screen_view -r 7d -i day
+
+# With a filter and a breakdown (one row per breakdown value)
+openpanel data -P <projectId> -e screen_view -r 30d -i week \
+  --filter "device is mobile" -b country
+
+# A saved report's current numbers
+openpanel data -R <reportId>
+
+# Save to a file (format inferred from the extension) — or force it with --format
+openpanel data -P <projectId> -e signup -r 30d -o signups.csv
+openpanel data -R <reportId> --format json -o report.json
+
+# Discover what you can query
+openpanel data -P <projectId> --list-events
+openpanel data -P <projectId> -e screen_view --list-properties
+```
+
+| Flag | Meaning | Default |
+|------|---------|---------|
+| `-P, --project` | Project ID (required for an ad-hoc query) | — |
+| `-R, --report` | Pull a saved report by ID (instead of an ad-hoc query) | — |
+| `-e, --event` | Event to query (repeatable) | — |
+| `-s, --segment` | Aggregation segment (`event`, `user`, `session`, …) | `event` |
+| `-i, --interval` | Time grouping (`minute`…`month`; **`day` or `week`** typically) | `day` |
+| `-r, --range` | Range (`7d`, `30d`, `today`, …) | **`7d`** |
+| `--start` / `--end` | Custom date range (ISO); overrides `--range` | — |
+| `-b, --breakdown` | Breakdown property (repeatable) | — |
+| `--limit` | Cap how many series are returned (top N by total) | — |
+| `-m, --metric` | Metric (`count`, `sum`, `average`, `min`, `max`) | `sum` |
+| `-c, --chart-type` | Chart type (`linear`, `bar`, `metric`, `area`, …) | `linear` |
+| `--filter` | Filter `"<property> <operator> [v1,v2]"` (repeatable) | — |
+| `--previous` | Include previous-period comparison | off |
+| `--format` | Output: `table`, `json`, or `csv` | `table` |
+| `-o, --out` | Write to a file (format inferred from `.json`/`.csv`) | — |
+| `--summary-only` | Print only the per-series summary (skip per-period rows) | off |
+| `--list-events` | List the project's events and exit | — |
+| `--list-properties` | List filter/breakdown properties (for `-e`) and exit | — |
+
+**Output.** The default table shows the value per time period (one column per
+series), then a **summary with one row per series** (`total`, `average`, `min`,
+`max`, plus `unique` for non-additive counts and `prev`/`change` with
+`--previous`). `--json` and `--csv`/`-o` hold the same numbers in machine form.
+
+**Filters.** `--filter "country is IN"`, `--filter "path contains /pricing"`,
+`--filter "revenue gte 100"`, `--filter "city isNull"`. Multiple values:
+`--filter "country is IN,US"`. Repeat `--filter` to AND several conditions.
+Operators are listed under [Enum reference](#enum-reference). A bare property
+name like `country` or a custom `properties.foo` both work — the CLI resolves it
+and warns (without failing) on an unknown name.
+
+**Numbers match the dashboard.** `data` calls OpenPanel's internal `chart.chart`
+query — the *same* procedure the dashboard tile uses to render — so the totals
+equal what you see in the browser (subject to the dashboard's 60-second cache and
+live data still streaming in for "today").
+
+> **Not supported:** `funnel`, `retention`, `conversion`, and `sankey` reports —
+> `data` covers time-series and aggregate charts (event counts, breakdowns).
+> View those chart types in the OpenPanel dashboard. (A saved report of one of
+> these types returns a clear message rather than wrong numbers.)
+
+> **Default range is 7 days** to limit ClickHouse load — pass `-r 30d` (etc.)
+> only when you need a wider window.
+
+---
+
 ## References (chart annotation markers)
 
 Markers (a title at a point in time) overlaid on time-series charts — e.g.

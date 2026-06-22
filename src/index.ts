@@ -4,12 +4,13 @@ import { registerConfigCommands } from './commands/config.js';
 import { registerProjectCommands } from './commands/projects.js';
 import { registerDashboardCommands } from './commands/dashboards.js';
 import { registerReportCommands } from './commands/reports.js';
+import { registerDataCommand } from './commands/data.js';
 import { registerRuleCommands } from './commands/rules.js';
 import { registerReferenceCommands } from './commands/references.js';
 import { TrpcError } from './trpc.js';
 import { errorLine, isJsonMode, printJson, setJsonMode } from './output.js';
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 function buildProgram(): Command {
   const program = new Command();
@@ -27,6 +28,7 @@ function buildProgram(): Command {
   registerProjectCommands(program);
   registerDashboardCommands(program);
   registerReportCommands(program);
+  registerDataCommand(program);
   registerRuleCommands(program);
   registerReferenceCommands(program);
 
@@ -38,6 +40,8 @@ Examples:
   $ openpanel projects list
   $ openpanel dashboards create -P <projectId> -n "Growth"
   $ openpanel reports create -d <dashboardId> -n "Signups" -e signup -c bar -r 7d
+  $ openpanel data -P <projectId> -e signup -r 7d -i day
+  $ openpanel data -R <reportId> --format csv -o signups.csv
   $ openpanel rules create -P <projectId> -n "New signups" -e signup --app
   $ openpanel references create -P <projectId> -t "Deployed v2"
   $ openpanel --json projects list
