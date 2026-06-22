@@ -175,6 +175,21 @@ export const zReportForCreate = z.object({
 export type ReportForCreate = z.infer<typeof zReportForCreate>;
 export type ReportForCreateInput = z.input<typeof zReportForCreate>;
 
+/**
+ * Input for the read-only `chart.chart` / `chart.aggregate` query procedures —
+ * mirrors OpenPanel's `zChartInput` (alias of `zReportInput`). It is the report
+ * shape plus an explicit `projectId` (the chart endpoints take it directly,
+ * rather than deriving it from a parent dashboard) and `globalFilters`
+ * (filters applied across every series). Used by the `data` command.
+ */
+export const zChartDataInput = zReportForCreate.extend({
+  projectId: z.string(),
+  globalFilters: z.array(zChartEventFilter).default([]),
+});
+
+export type ChartDataInput = z.infer<typeof zChartDataInput>;
+export type ChartDataInputInput = z.input<typeof zChartDataInput>;
+
 // ── Notification rules ──
 export const zNotificationRuleEventConfig = z.object({
   type: z.literal('events'),

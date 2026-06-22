@@ -14,12 +14,15 @@ dashboards and reports for them from natural-language requests.
 
 ## Scope & design principle (important)
 
-This CLI is intentionally **analytics-only**. It exists to create and manage:
+This CLI is intentionally **analytics-only**. It exists to create, manage, and
+read:
 
 - **Dashboards**
 - **Reports** — chart tiles / metrics
 - **References** — annotation markers on time-series charts
 - **Notification rules** — event / funnel alerts
+- **Data** — pull the numbers for a report or ad-hoc query (read-only), as a
+  table / JSON / CSV
 
 It deliberately does **NOT** provide admin or settings functionality. Project
 settings, organization & member management, integration setup, API clients,
@@ -56,8 +59,9 @@ Default is OpenPanel Cloud. Point at your own instance with
    ClickHouse. Use longer ranges (`30d`, `3m`, …) only when explicitly asked.
 4. **A report lives inside a dashboard** — create or find the dashboard first,
    then add reports using its `dashboardId`.
-5. **Don't invent event names** — discover real ones (ask the user, or inspect
-   existing reports via `openpanel --json reports list -d <id> -P <id>`).
+5. **Don't invent event names** — discover real ones (ask the user, run
+   `openpanel data -P <pid> --list-events`, or inspect existing reports via
+   `openpanel --json reports list -d <id> -P <id>`).
 6. **Use `--json`** to parse ids and chain steps reliably.
 7. **Confirm before deletes** — deletes are destructive.
 
@@ -68,6 +72,7 @@ openpanel whoami
 openpanel --json projects list                          # → projectId
 openpanel --json dashboards create -P <pid> -n "Growth"  # → dashboardId
 openpanel reports create -d <did> -n "Signups" -e signup -c bar   # 7d by default
+openpanel data -P <pid> -e signup -r 7d -i day                   # pull the numbers
 ```
 
 ## Command map
@@ -79,6 +84,7 @@ openpanel reports create -d <did> -n "Signups" -e signup -c bar   # 7d by defaul
 | `projects list` | Read-only discovery of org/projects + ids |
 | `dashboards list \| create \| delete` | Dashboards |
 | `reports list \| create \| delete` | Reports — flags or `--file <spec.json>` |
+| `data` (`pull`) | Pull report/ad-hoc query results (read-only) — table/JSON/CSV |
 | `references list \| create \| delete` | Chart annotation markers |
 | `rules list \| create \| delete` | Notification rules |
 

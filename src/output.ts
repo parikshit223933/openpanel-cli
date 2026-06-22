@@ -86,3 +86,20 @@ function formatCell(value: unknown): string {
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
+
+/** Serialize rows to RFC-4180 CSV (quotes fields containing , " or newlines). */
+export function toCsv(
+  rows: Array<Record<string, unknown>>,
+  columns?: string[],
+): string {
+  const cols = columns ?? (rows[0] ? Object.keys(rows[0]) : []);
+  const escape = (value: unknown): string => {
+    const s = formatCell(value);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [cols.join(',')];
+  for (const r of rows) {
+    lines.push(cols.map((col) => escape(r[col])).join(','));
+  }
+  return lines.join('\n') + '\n';
+}
